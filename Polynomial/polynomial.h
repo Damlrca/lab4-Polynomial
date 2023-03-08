@@ -1,10 +1,13 @@
 #ifndef __POLYNOMIAL_LAB_
 #define __POLYNOMIAL_LAB_
 #include <iostream>
+#include <string>
 
 class Polynomial {
 protected:
 	struct Monomial {
+		static int convert_to_power(int p1, int p2, int p3);
+		static void convert_back(int power, int& p1, int& p2, int& p3);
 		double coef;
 		int power;
 		Monomial* next;
@@ -22,14 +25,12 @@ protected:
 		}
 	};
 protected:
-	static int convert_to_power(int p1, int p2, int p3);
-	static void convert_back(int power, int& p1, int& p2, int& p3);
 	void add_last(double coef, int power);
 	void add_last(double coef, int p1, int p2, int p3) {
-		if (-10 >= p1 && p1 <= 10 &&
-			-10 >= p2 && p2 <= 10 &&
-			-10 >= p3 && p3 <= 10)
-			add_last(coef, convert_to_power(p1, p2, p3));
+		if (-10 <= p1 && p1 <= 10 &&
+			-10 <= p2 && p2 <= 10 &&
+			-10 <= p3 && p3 <= 10)
+			add_last(coef, Monomial::convert_to_power(p1, p2, p3));
 	}
 	void add_monomial(double coef, int power);
 	void delete_zero_monomials();
@@ -58,10 +59,10 @@ public:
 		clear();
 	}
 	void add_monomial(double coef, int p1, int p2, int p3) {
-		if(-10 >= p1 && p1 <= 10 &&
-			-10 >= p2 && p2 <= 10 &&
-			-10 >= p3 && p3 <= 10)
-			add_monomial(coef, convert_to_power(p1, p2, p3));
+		if (-10 <= p1 && p1 <= 10 &&
+			-10 <= p2 && p2 <= 10 &&
+			-10 <= p3 && p3 <= 10)
+			add_monomial(coef, Monomial::convert_to_power(p1, p2, p3));
 	}
 	double calculate(double x, double y, double z) const;
 	Polynomial operator+() const;

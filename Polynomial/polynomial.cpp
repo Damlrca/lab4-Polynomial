@@ -1,12 +1,12 @@
 #include <cmath>
 #include "polynomial.h"
 
-int Polynomial::convert_to_power(int p1, int p2, int p3) {
+int Polynomial::Monomial::convert_to_power(int p1, int p2, int p3) {
 	p1 += 10; p2 += 10; p3 += 10;
 	return 21 * 21 * p1 + 21 * p2 + p3;
 }
 
-void Polynomial::convert_back(int power, int& p1, int& p2, int& p3) {
+void Polynomial::Monomial::convert_back(int power, int& p1, int& p2, int& p3) {
 	p3 = power % 21 - 10;
 	power /= 21;
 	p2 = power % 21 - 10;
@@ -82,7 +82,7 @@ double Polynomial::calculate(double x, double y, double z) const {
 	Monomial* now = start;
 	while (now != nullptr) {
 		int p[3]{};
-		convert_back(now->power, p[0], p[1], p[2]);
+		Monomial::convert_back(now->power, p[0], p[1], p[2]);
 		ans += now->coef * std::pow(x, p[0]) * std::pow(y, p[1]) * std::pow(z, p[2]);
 		now = now->next;
 	}
@@ -145,8 +145,8 @@ Polynomial Polynomial::operator*(const Polynomial& p) const {
 		Monomial* now2 = p.start;
 		while (now2 != nullptr)	{
 			int r1[3]{}, r2[3]{};
-			convert_back(now1->power, r1[0], r1[1], r1[2]);
-			convert_back(now2->power, r2[0], r2[1], r2[2]);
+			Monomial::convert_back(now1->power, r1[0], r1[1], r1[2]);
+			Monomial::convert_back(now2->power, r2[0], r2[1], r2[2]);
 			ret.add_monomial(now1->coef * now2->coef, r1[0] + r2[0], r1[1] + r2[1], r1[2] + r2[2]);
 			now2 = now2->next;
 		}
@@ -157,9 +157,74 @@ Polynomial Polynomial::operator*(const Polynomial& p) const {
 }
 
 std::istream& operator>>(std::istream& in, Polynomial& p) {
+	p.clear();
+	char c;
+	in.get(c);
+	int state = 0; // 0 - считваем коэффицент, 1 - считвываем степень
+	while (c != ';' && c != '\n') {
+		std::string s_coef;
+		if (c == '-' || c == '+') {
+			s_coef += c;
+			in.get(c);
+		}
+		while (std::isdigit(c)) {
+			s_coef += c;
+			in.get(c);
+		}
+		if (c == '.') {
+			s_coef += c;
+			in.get(c);
+		}
+		while (std::isdigit(c)) {
+			s_coef += c;
+			in.get(c);
+		}
+		if (s_coef == "+" || s_coef == "-" || s_coef.empty())
+			s_coef += '1';
+		double coef = std::stod(s_coef);
+		int r[3]{};
+		while (c == 'x' || c == 'y' || c == 'z') {
+			int id = c - 'x';
+			in.get(c);
+			if (c != '^')
+				throw "unexpected symbol";
+			std::string s_r;
+			in.get(c);
+			if (c == '-' || c == '+') {
+				s_r += c;
+				in.get(c);
+			}
+			while (std::isdigit(c)) {
+				s_r += c;
+				in.get(c);
+			}
+			r[id] += std::stoi(s_r);
+		}
+
+		p.add_monomial(coef, r[0], r[1], r[2]);
+
+		if (c != '+' && c != '-' && c != '\n' && c != ';') {
+			throw "unexpected symbol";
+		}
+	}
+	p.delete_zero_monomials();
 	return in;
 }
 
 std::ostream& operator<<(std::ostream& out, const Polynomial& p) {
+	auto now = p.start;
+	int cnt = 0;
+	while (now != nullptr) {
+		int r[3]{};
+		now->convert_back(now->power, r[0], r[1], r[2]);
+		if (cnt > 0 && now->coef >= 0)
+			out << '+';
+		out << now->coef;
+		for (int i = 0; i < 3; i++)
+		if (r[i])
+			out << (char)('x' + i) << '^' << r[i];
+		now = now->next;
+		cnt++;
+	}
 	return out;
 }
