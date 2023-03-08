@@ -9,7 +9,7 @@ int Polynomial::convert_to_power(int p1, int p2, int p3) {
 void Polynomial::convert_back(int power, int& p1, int& p2, int& p3) {
 	p3 = power % 21 - 10;
 	power /= 21;
-	p3 = power % 21 - 10;
+	p2 = power % 21 - 10;
 	power /= 21;
 	p1 = power % 21 - 10;
 }
@@ -71,10 +71,10 @@ void Polynomial::delete_zero_monomials() {
 			delete now->next;
 			now->next = temp;
 		}
-		last = now;
 		if (now->next != nullptr)
 			now = now->next;
 	}
+	last = now;
 }
 
 double Polynomial::calculate(double x, double y, double z) const {
@@ -83,7 +83,7 @@ double Polynomial::calculate(double x, double y, double z) const {
 	while (now != nullptr) {
 		int p[3]{};
 		convert_back(now->power, p[0], p[1], p[2]);
-		ans += now->coef * std::pow(x, p[0]) * std::pow(y, p[1]) + std::pow(z, p[2]);
+		ans += now->coef * std::pow(x, p[0]) * std::pow(y, p[1]) * std::pow(z, p[2]);
 		now = now->next;
 	}
 	return ans;
@@ -144,10 +144,10 @@ Polynomial Polynomial::operator*(const Polynomial& p) const {
 	while (now1 != nullptr)	{
 		Monomial* now2 = p.start;
 		while (now2 != nullptr)	{
-			int st1[3]{}, st2[3]{};
-			convert_back(now1->power, st1[0], st1[1], st1[2]);
-			convert_back(now2->power, st2[0], st2[1], st2[2]);
-			ret.add_monomial(now1->coef * now2->coef, convert_to_power(st1[0] + st2[0], st1[1] + st2[1], st1[2] + st2[2]));
+			int r1[3]{}, r2[3]{};
+			convert_back(now1->power, r1[0], r1[1], r1[2]);
+			convert_back(now2->power, r2[0], r2[1], r2[2]);
+			ret.add_monomial(now1->coef * now2->coef, r1[0] + r2[0], r1[1] + r2[1], r1[2] + r2[2]);
 			now2 = now2->next;
 		}
 		now1 = now1->next;
