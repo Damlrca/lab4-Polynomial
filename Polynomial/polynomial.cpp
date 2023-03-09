@@ -2,16 +2,18 @@
 #include "polynomial.h"
 
 int Polynomial::Monomial::convert_to_power(int p1, int p2, int p3) {
-	p1 += 10; p2 += 10; p3 += 10;
-	return 21 * 21 * p1 + 21 * p2 + p3;
+	p1 -= min_power;
+	p2 -= min_power;
+	p3 -= min_power;
+	return d * d * p1 + d * p2 + p3;
 }
 
 void Polynomial::Monomial::convert_back(int power, int& p1, int& p2, int& p3) {
-	p3 = power % 21 - 10;
-	power /= 21;
-	p2 = power % 21 - 10;
-	power /= 21;
-	p1 = power % 21 - 10;
+	p3 = power % d + min_power;
+	power /= d;
+	p2 = power % d + min_power;
+	power /= d;
+	p1 = power % d + min_power;
 }
 
 void Polynomial::add_last(double coef, int power) {
@@ -48,6 +50,7 @@ void Polynomial::add_monomial(double coef, int power) {
 			now->next = new Monomial(coef, power, now->next);
 			return;
 		}
+		now = now->next;
 	}
 	add_last(coef, power);
 }
@@ -55,7 +58,7 @@ void Polynomial::add_monomial(double coef, int power) {
 void Polynomial::delete_zero_monomials() {
 	while (start != nullptr && start->coef == 0.0) {
 		auto temp = start->next;
-		start->next == nullptr;
+		start->next = nullptr;
 		delete start;
 		start = temp;
 	}
@@ -83,10 +86,27 @@ double Polynomial::calculate(double x, double y, double z) const {
 	while (now != nullptr) {
 		int p[3]{};
 		Monomial::convert_back(now->power, p[0], p[1], p[2]);
-		ans += now->coef * std::pow(x, p[0]) * std::pow(y, p[1]) * std::pow(z, p[2]);
+		ans += now->coef * std::exp(p[0] * std::log(x)) *
+			std::exp(p[1] * std::log(y)) * std::exp(p[2] * std::log(z));
 		now = now->next;
 	}
 	return ans;
+}
+
+Polynomial& Polynomial::operator=(const Polynomial& p)
+{
+	if (this == &p)
+		return *this;
+	clear();
+	if (p.start == nullptr) {
+		last = start = nullptr;
+		return *this;
+	}
+	start = new Monomial(*p.start);
+	last = start;
+	while (last->next != nullptr)
+		last = last->next;
+	return *this;
 }
 
 Polynomial Polynomial::operator+() const {
@@ -160,8 +180,7 @@ std::istream& operator>>(std::istream& in, Polynomial& p) {
 	p.clear();
 	char c;
 	in.get(c);
-	int state = 0; // 0 - считваем коэффицент, 1 - считвываем степень
-	while (c != ';' && c != '\n') {
+	while (c != ';' && c != '\n' && !in.eof()) {
 		std::string s_coef;
 		if (c == '-' || c == '+') {
 			s_coef += c;
@@ -221,8 +240,8 @@ std::ostream& operator<<(std::ostream& out, const Polynomial& p) {
 			out << '+';
 		out << now->coef;
 		for (int i = 0; i < 3; i++)
-		if (r[i])
-			out << (char)('x' + i) << '^' << r[i];
+			if (r[i])
+				out << (char)('x' + i) << '^' << r[i];
 		now = now->next;
 		cnt++;
 	}
