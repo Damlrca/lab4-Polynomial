@@ -5,15 +5,15 @@ int Polynomial::Monomial::convert_to_power(int p1, int p2, int p3) {
 	p1 -= min_power;
 	p2 -= min_power;
 	p3 -= min_power;
-	return d * d * p1 + d * p2 + p3;
+	return number_of_diff_powers * number_of_diff_powers * p1 + number_of_diff_powers * p2 + p3;
 }
 
 void Polynomial::Monomial::convert_back(int power, int& p1, int& p2, int& p3) {
-	p3 = power % d + min_power;
-	power /= d;
-	p2 = power % d + min_power;
-	power /= d;
-	p1 = power % d + min_power;
+	p3 = power % number_of_diff_powers + min_power;
+	power /= number_of_diff_powers;
+	p2 = power % number_of_diff_powers + min_power;
+	power /= number_of_diff_powers;
+	p1 = power % number_of_diff_powers + min_power;
 }
 
 void Polynomial::add_last(double coef, int power) {
@@ -27,7 +27,7 @@ void Polynomial::add_last(double coef, int power) {
 	}
 }
 
-void Polynomial::add_monomial(double coef, int power) {
+void Polynomial::add(double coef, int power) {
 	if (start == nullptr) {
 		add_last(coef, power);
 		return;
@@ -86,8 +86,7 @@ double Polynomial::calculate(double x, double y, double z) const {
 	while (now != nullptr) {
 		int p[3]{};
 		Monomial::convert_back(now->power, p[0], p[1], p[2]);
-		ans += now->coef * std::exp(p[0] * std::log(x)) *
-			std::exp(p[1] * std::log(y)) * std::exp(p[2] * std::log(z));
+		ans += now->coef * std::pow(x, p[0]) * std::pow(y, p[1]) * std::pow(z, p[2]);
 		now = now->next;
 	}
 	return ans;
@@ -167,7 +166,7 @@ Polynomial Polynomial::operator*(const Polynomial& p) const {
 			int r1[3]{}, r2[3]{};
 			Monomial::convert_back(now1->power, r1[0], r1[1], r1[2]);
 			Monomial::convert_back(now2->power, r2[0], r2[1], r2[2]);
-			ret.add_monomial(now1->coef * now2->coef, r1[0] + r2[0], r1[1] + r2[1], r1[2] + r2[2]);
+			ret.add(now1->coef * now2->coef, r1[0] + r2[0], r1[1] + r2[1], r1[2] + r2[2]);
 			now2 = now2->next;
 		}
 		now1 = now1->next;
@@ -179,50 +178,63 @@ Polynomial Polynomial::operator*(const Polynomial& p) const {
 std::istream& operator>>(std::istream& in, Polynomial& p) {
 	p.clear();
 	char c;
-	in.get(c);
+	auto skip_spaces_and_get_c = [&c, &in]() {
+		while (in.get(c) && c == ' ');
+	};
+	skip_spaces_and_get_c();
 	while (c != ';' && c != '\n' && !in.eof()) {
 		std::string s_coef;
-		if (c == '-' || c == '+') {
+		if (!in.eof() && (c == '-' || c == '+')) {
+			s_coef += c;
+			skip_spaces_and_get_c();
+		}
+		while (!in.eof() && std::isdigit(c)) {
 			s_coef += c;
 			in.get(c);
 		}
-		while (std::isdigit(c)) {
+		if (!in.eof() && c == '.') {
 			s_coef += c;
 			in.get(c);
 		}
-		if (c == '.') {
+		while (!in.eof() && std::isdigit(c)) {
 			s_coef += c;
 			in.get(c);
 		}
-		while (std::isdigit(c)) {
-			s_coef += c;
-			in.get(c);
-		}
+
 		if (s_coef == "+" || s_coef == "-" || s_coef.empty())
 			s_coef += '1';
 		double coef = std::stod(s_coef);
+
+		if (!in.eof()) {
+			in.unget();
+			skip_spaces_and_get_c();
+		}
 		int r[3]{};
-		while (c == 'x' || c == 'y' || c == 'z') {
+		while (!in.eof() && c >= 'x' && c <= 'z') {
 			int id = c - 'x';
-			in.get(c);
-			if (c != '^')
-				throw "unexpected symbol";
+			skip_spaces_and_get_c();
+			if (in.eof() || c != '^')
+				throw "expected '^'";
 			std::string s_r;
-			in.get(c);
-			if (c == '-' || c == '+') {
+			skip_spaces_and_get_c();
+			if (!in.eof() && (c == '-' || c == '+')) {
 				s_r += c;
-				in.get(c);
+				skip_spaces_and_get_c();
 			}
-			while (std::isdigit(c)) {
+			while (!in.eof() && std::isdigit(c)) {
 				s_r += c;
 				in.get(c);
 			}
 			r[id] += std::stoi(s_r);
 		}
 
-		p.add_monomial(coef, r[0], r[1], r[2]);
+		p.add(coef, r[0], r[1], r[2]);
 
-		if (c != '+' && c != '-' && c != '\n' && c != ';') {
+		if (!in.eof()) {
+			in.unget();
+			skip_spaces_and_get_c();
+		}
+		if (!in.eof() && c != '+' && c != '-' && c != '\n' && c != ';') {
 			throw "unexpected symbol";
 		}
 	}
@@ -238,9 +250,15 @@ std::ostream& operator<<(std::ostream& out, const Polynomial& p) {
 		now->convert_back(now->power, r[0], r[1], r[2]);
 		if (cnt > 0 && now->coef >= 0)
 			out << '+';
-		out << now->coef;
+		if ((now->coef == 1 || now->coef == -1) && (r[0] != 0 || r[1] != 0 || r[2] != 0)) {
+			if (now->coef == -1)
+				out << '-';
+		}
+		else {
+			out << now->coef;
+		}
 		for (int i = 0; i < 3; i++)
-			if (r[i])
+			if (r[i] != 0)
 				out << (char)('x' + i) << '^' << r[i];
 		now = now->next;
 		cnt++;

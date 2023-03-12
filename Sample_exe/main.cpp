@@ -4,11 +4,10 @@
 using namespace std;
 
 int main() {
-	ifstream fin("input.txt");
+	ifstream fin(R"(..\..\Sample_exe\example.txt)"); // lab4-Polynomial\Sample_exe\example.txt
 	Polynomial p1, p2;
 	fin >> p1 >> p2;
 	cout << "p1: " << p1 << endl << "p2: " << p2 << endl;
-	//auto t = p1 * p2;
 	Polynomial t;
 	t = p1 * p2;
 	cout << "p1 * p2: ";

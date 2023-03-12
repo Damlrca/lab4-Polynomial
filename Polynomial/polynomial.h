@@ -27,7 +27,7 @@ protected:
 protected:
 	static constexpr int min_power = -10;
 	static constexpr int max_power = 10;
-	static constexpr int d = max_power - min_power + 1;
+	static constexpr int number_of_diff_powers = max_power - min_power + 1;
 	void add_last(double coef, int power);
 	void add_last(double coef, int p1, int p2, int p3) {
 		if (min_power <= p1 && p1 <= max_power &&
@@ -35,8 +35,7 @@ protected:
 			min_power <= p3 && p3 <= max_power)
 			add_last(coef, Monomial::convert_to_power(p1, p2, p3));
 	}
-	void add_monomial(double coef, int power);
-	void delete_zero_monomials();
+	void add(double coef, int power);
 protected:
 	Monomial* start;
 	Monomial* last;
@@ -61,11 +60,12 @@ public:
 	~Polynomial() {
 		clear();
 	}
-	void add_monomial(double coef, int p1, int p2, int p3) {
+	void delete_zero_monomials();
+	void add(double coef, int p1, int p2, int p3) {
 		if (min_power <= p1 && p1 <= max_power &&
 			min_power <= p2 && p2 <= max_power &&
 			min_power <= p3 && p3 <= max_power)
-			add_monomial(coef, Monomial::convert_to_power(p1, p2, p3));
+			add(coef, Monomial::convert_to_power(p1, p2, p3));
 	}
 	double calculate(double x, double y, double z) const;
 	Polynomial& operator=(const Polynomial& p);
